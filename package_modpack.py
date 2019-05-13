@@ -16,6 +16,7 @@ class modpack_packager(object):
 	def __init__(self, 
 			modpack_dir=None, 
 			packages_dir=None, 
+			additional_server_files_dir=os.path.join(os.path.dirname(__file__),'additional_server_files'), 
 			modpack_name=None, 
 			modpack_version=None, 
 			remove_server_mods_fname=os.path.join(os.path.dirname(__file__),'remove_server_mods.json'), 
@@ -24,6 +25,7 @@ class modpack_packager(object):
 		"""initialize all variables needed by the package functions"""
 		self.modpack_dir = modpack_dir
 		self.packages_dir = packages_dir
+		self.additional_server_files_dir = additional_server_files_dir
 		self.modpack_name = modpack_name
 		self.modpack_version = modpack_version
 		self.remove_server_mods_fname = remove_server_mods_fname
@@ -76,6 +78,7 @@ class modpack_packager(object):
 		
 		self.modpack_dir_native = translate_wsl_paths.translate_path_to_native(self.modpack_dir)
 		self.packages_dir_native = translate_wsl_paths.translate_path_to_native(self.packages_dir)
+		self.additional_server_files_dir_native = translate_wsl_paths.translate_path_to_native(self.additional_server_files_dir)
 
 		self.minecraftinstance_json_path = os.path.join(self.modpack_dir_native, 'minecraftinstance.json')
 	
@@ -128,7 +131,6 @@ class modpack_packager(object):
 		if self.launcher_wrapper_version is None:
 			raise Exception("Could not determine launchwrapper version!")
 		self.minecraft_version = self.minecraftinstance["baseModLoader"]["minecraftVersion"]
-		self.additional_server_files_path = 'additional_server_files'
 	
 	def install_forge(self):
 		"""ensures the forge server version specified in minecraftinstance is installed where we can access it"""
@@ -247,7 +249,7 @@ class modpack_packager(object):
 			pass # Just creating this as a blank file
 
 		print('Copying additional files into  "{}"...'.format(self.temp_server_dir))
-		file_ops.copy_directory(self.additional_server_files_path, self.temp_server_dir)
+		file_ops.copy_directory(self.additional_server_files_dir_native, self.temp_server_dir)
 
 		print('Modifying settings files to include correct versions...')
 		settings_files = [
@@ -286,12 +288,13 @@ class modpack_packager(object):
 
 if __name__=='__main__':
 	parser = argparse.ArgumentParser(description='TEST_DESCRIPTION')
-	parser.add_argument('-j', '--client_info_fname',        dest='client_info_fname',        default=argparse.SUPPRESS, help='Filename of a JSON file containing settings.  For details, see example file "client_loc_info.json".  Values specified in the JSON file override those specified by command-line.')
-	parser.add_argument('-r', '--remove_server_mods_fname', dest='remove_server_mods_fname', default=argparse.SUPPRESS, help='Filename of a JSON file containing a list of mods to remove for the server.  Should contain a list of filenames in the format ["ExampleMod1-1.12-1.0.1.jar", "ExampleMod2-1.12.2-3.2.01.jar"].')
-	parser.add_argument('-d', '--modpack_dir',              dest='modpack_dir',              default=argparse.SUPPRESS, help='Path to the directory from which the modpack files should be copied.  On systems running Windows Subsystem for Linux (WSL), supports both WSL paths (/mnt/c/...) and Windows paths (C:\...).')
-	parser.add_argument('-p', '--packages_dir',             dest='packages_dir',             default=argparse.SUPPRESS, help='Path to the directory in which the finished modpack packages should be created.  On systems running Windows Subsystem for Linux (WSL), supports both WSL paths (/mnt/c/...) and Windows paths (C:\...).')
-	parser.add_argument('-n', '--modpack_name',             dest='modpack_name',             default=argparse.SUPPRESS, help='Name of the modpack used as a prefix for filenames and listed in client "manifest.json".  If not specified (here or in JSON file), defaults to the name specified in "minecraftinstance.json" in the modpack directory.')
-	parser.add_argument('-v', '--modpack_version',          dest='modpack_version',          default=argparse.SUPPRESS, help='Version number of the modpack used as a suffix for filenames and listed in client "manifest.json".  If not specified (here or in JSON file), an error is encountered. #TODO: Implement auto-incrementing version numbers!') #TODO
+	parser.add_argument('-j', '--client_info_fname',           dest='client_info_fname',           default=argparse.SUPPRESS, help='Filename of a JSON file containing settings.  For details, see example file "client_loc_info.json".  Values specified in the JSON file override those specified by command-line.')
+	parser.add_argument('-r', '--remove_server_mods_fname',    dest='remove_server_mods_fname',    default=argparse.SUPPRESS, help='Filename of a JSON file containing a list of mods to remove for the server.  Should contain a list of filenames in the format ["ExampleMod1-1.12-1.0.1.jar", "ExampleMod2-1.12.2-3.2.01.jar"].')
+	parser.add_argument('-d', '--modpack_dir',                 dest='modpack_dir',                 default=argparse.SUPPRESS, help='Path to the directory from which the modpack files should be copied.  On systems running Windows Subsystem for Linux (WSL), supports both WSL paths (/mnt/c/...) and Windows paths (C:\...).')
+	parser.add_argument('-p', '--packages_dir',                dest='packages_dir',                default=argparse.SUPPRESS, help='Path to the directory in which the finished modpack packages should be created.  On systems running Windows Subsystem for Linux (WSL), supports both WSL paths (/mnt/c/...) and Windows paths (C:\...).')
+	parser.add_argument('-a', '--additional_server_files_dir', dest='additional_server_files_dir', default=argparse.SUPPRESS, help='Path to the directory from which additional files for the server should be copied.  Defaults to the folder "additional_server_files" installed with the packager.  On systems running Windows Subsystem for Linux (WSL), supports both WSL paths (/mnt/c/...) and Windows paths (C:\...).')
+	parser.add_argument('-n', '--modpack_name',                dest='modpack_name',                default=argparse.SUPPRESS, help='Name of the modpack used as a prefix for filenames and listed in client "manifest.json".  If not specified (here or in JSON file), defaults to the name specified in "minecraftinstance.json" in the modpack directory.')
+	parser.add_argument('-v', '--modpack_version',             dest='modpack_version',             default=argparse.SUPPRESS, help='Version number of the modpack used as a suffix for filenames and listed in client "manifest.json".  If not specified (here or in JSON file), an error is encountered. #TODO: Implement auto-incrementing version numbers!') #TODO
 	args = parser.parse_args()
 	init_settings = args.__dict__
 	modpack_packager(**init_settings).run()

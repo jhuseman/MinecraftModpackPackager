@@ -2,6 +2,7 @@
 	"remove_server_mods_fname":null,
 	"modpack_dir":null,
 	"packages_dir":null,
+	"additional_server_files_dir":null,
 	"modpack_name":null, 
 	"modpack_version":"0.0.0"
 }
