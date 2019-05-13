@@ -10,4 +10,5 @@ setup(name='MinecraftModpackPackager',
 	author_email='jhuseman@alumni.nd.edu',
 	url='https://github.com/jhuseman/MinecraftModpackPackager',
 	packages=['MinecraftModpackPackager'],
+	package_data={'MinecraftModpackPackager': ['client_loc_info.json', 'remove_server_mods.json', 'additional_server_files/*']},
 )
