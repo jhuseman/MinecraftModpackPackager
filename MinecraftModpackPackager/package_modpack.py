@@ -255,6 +255,7 @@ class modpack_packager(object):
 		settings_files = [
 			'settings.bat', 
 			'settings.sh', 
+			'settings.py', 
 		]
 		settings_keys = {
 			'{{[FORGEJAR]}}':self.forge_universal_filename, 

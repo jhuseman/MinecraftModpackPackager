@@ -1,5 +1,5 @@
 ###################################################
-# Configuration for ServerStart.sh and FTBInstall.sh
+# Configuration for ServerStart.sh and setup.sh
 #
 # TODO:
 # * updates for new mojang repositories
