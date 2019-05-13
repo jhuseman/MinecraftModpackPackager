@@ -2,8 +2,9 @@
 
 import os
 import shutil
-
+import tempfile
 import argparse
+
 import subprocess
 import json
 
@@ -79,9 +80,11 @@ class modpack_packager(object):
 		"""calculate all of the paths needed by the package functions"""
 		self.config_dir_path = os.path.join(self.modpack_dir_native, 'config')
 
-		self.temp_dir = os.path.join(os.curdir, 'temp', self.modpack_version)
-		self.temp_client_dir = os.path.join(self.temp_dir, 'client')
-		self.temp_server_dir = os.path.join(self.temp_dir, 'server')
+		# self.temp_dir = os.path.join(os.curdir, 'temp')
+		self.temp_dir = os.path.join(tempfile.gettempdir(), 'mc_modpack_package')
+		self.temp_version_dir = os.path.join(self.temp_dir, self.modpack_version)
+		self.temp_client_dir = os.path.join(self.temp_version_dir, 'client')
+		self.temp_server_dir = os.path.join(self.temp_version_dir, 'server')
 
 		self.package_dir = os.path.join(self.packages_dir_native, self.modpack_version)
 		self.package_client_dir = os.path.join(self.package_dir, '{name}_client_{version}'.format(name=self.modpack_name, version=self.modpack_version))
@@ -100,7 +103,8 @@ class modpack_packager(object):
 		self.forge_installer_filename = 'forge-{}-installer.jar'.format(self.forge_version)
 		self.forge_universal_filename = 'forge-{}-universal.jar'.format(self.forge_version)
 		self.forge_installer_path = os.path.join(os.curdir, 'forge_jars', self.forge_installer_filename)
-		self.forge_install_dir_path = os.path.join(os.curdir, 'forge_jars', 'installs', self.forge_version)
+		# self.forge_install_dir_path = os.path.join(os.curdir, 'forge_jars', 'installs', self.forge_version)
+		self.forge_install_dir_path = os.path.join(os.path.expanduser('~'), '.mc_forge_installs', 'forge-{}'.format(self.forge_version))
 		self.forge_universal_path = os.path.join(self.forge_install_dir_path, self.forge_universal_filename)
 		self.forge_installer_url = 'https://files.minecraftforge.net/maven/net/minecraftforge/forge/{forge_version}/forge-{forge_version}-installer.jar'.format(forge_version=self.forge_version)
 		self.launcher_wrapper_version = None
