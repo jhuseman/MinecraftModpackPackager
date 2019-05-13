@@ -8,17 +8,25 @@ import argparse
 import subprocess
 import json
 
-import file_ops
-import translate_wsl_paths
+from MinecraftModpackPackager import file_ops
+from MinecraftModpackPackager import translate_wsl_paths
 
 class modpack_packager(object):
 	"""packages a Minecraft modpack into the respective client and server zip archives, for easy transfer to another computer"""
-	def __init__(self, modpack_dir=None, packages_dir=None, modpack_name=None, modpack_version=None, client_info_fname=None):
+	def __init__(self, 
+			modpack_dir=None, 
+			packages_dir=None, 
+			modpack_name=None, 
+			modpack_version=None, 
+			remove_server_mods_fname=os.path.join(os.path.dirname(__file__),'remove_server_mods.json'), 
+			client_info_fname=os.path.join(os.path.dirname(__file__),'client_loc_info.json'), 
+		):
 		"""initialize all variables needed by the package functions"""
 		self.modpack_dir = modpack_dir
 		self.packages_dir = packages_dir
 		self.modpack_name = modpack_name
 		self.modpack_version = modpack_version
+		self.remove_server_mods_fname = remove_server_mods_fname
 		self.client_info_fname = client_info_fname
 		if not self.client_info_fname is None:
 			print("Loading settings JSON file...")
@@ -45,18 +53,21 @@ class modpack_packager(object):
 	
 	def load_client_info(self):
 		"""load in a JSON archive of settings for the installed client, and override preset settings"""
-		with open(self.client_info_fname, 'r') as fp:
-			client_info = json.load(fp)
-		overwrite_keys = [
-			'modpack_dir', 
-			'packages_dir', 
-			'modpack_name', 
-			'modpack_version', 
-		]
-		for key in overwrite_keys:
-			if key in client_info:
-				if not client_info[key] is None:
-					setattr(self, key, client_info[key])
+		if not os.path.isfile(self.client_info_fname):
+			print('WARNING: Client info file "{}" does not exist')
+		else:
+			with open(self.client_info_fname, 'r') as fp:
+				client_info = json.load(fp)
+			overwrite_keys = [
+				'modpack_dir', 
+				'packages_dir', 
+				'modpack_name', 
+				'modpack_version', 
+			]
+			for key in overwrite_keys:
+				if key in client_info:
+					if not client_info[key] is None:
+						setattr(self, key, client_info[key])
 	
 	def calculate_initial_paths(self):
 		"""calculate a few paths required by load_minecraftinstance"""
@@ -210,16 +221,21 @@ class modpack_packager(object):
 				os.path.join("mods","mod_list.json"),
 			]
 		)
-		remove_mods_json_path = 'remove_mods.json'
-		if os.path.isfile(remove_mods_json_path):
-			print('Disabling troublesome mods listed in "{}"...'.format(remove_mods_json_path))
-			with open(remove_mods_json_path, 'r') as fp:
-				remove_mods = json.load(fp)
-			for mod in remove_mods:
-				mod_path = os.path.join(self.temp_server_dir, "mods", "{}.jar".format(mod))
-				mod_disabled_path = mod_path + ".disabled"
-				if os.path.isfile(mod_path):
-					os.rename(mod_path, mod_disabled_path)
+		if not self.remove_server_mods_fname is None:
+			if not os.path.isfile(self.remove_server_mods_fname):
+				print('WARNING: Removed mods list "{}" does not exist! Installing all mods to server...'.format(self.remove_server_mods_fname))
+			else:
+				print('Disabling troublesome mods listed in "{}"...'.format(self.remove_server_mods_fname))
+				with open(self.remove_server_mods_fname, 'r') as fp:
+					remove_mods = json.load(fp)
+				for mod in remove_mods:
+					mod_path_A = os.path.join(self.temp_server_dir, "mods", mod)
+					mod_path_B = mod_path_A + '.jar'
+					mod_paths = [mod_path_A, mod_path_B]
+					for mod_path in mod_paths:
+						if os.path.isfile(mod_path):
+							mod_disabled_path = mod_path + ".disabled"
+							os.rename(mod_path, mod_disabled_path)
 		print('Copying forge installation from "{forge_install_dir_path}" into "{temp_server_dir}"...'.format(forge_install_dir_path = self.forge_install_dir_path, temp_server_dir = self.temp_server_dir))
 		file_ops.copy_directory(self.forge_install_dir_path, self.temp_server_dir, 
 			exclude=[
@@ -260,29 +276,22 @@ class modpack_packager(object):
 		print('Deleting temporary directory "{}"...'.format(self.temp_version_dir))
 		shutil.rmtree(self.temp_version_dir)
 		print('Temporary directory cleared!')
-
-def run(**kwargs):
-	packager = modpack_packager(**kwargs)
-	packager.prep()
-	packager.package_client()
-	packager.package_server()
-	packager.cleanup()
+	
+	def run(self):
+		"""runs the entire packaging procedure in order, including prep, package_client, package_server, and cleanup"""
+		self.prep()
+		self.package_client()
+		self.package_server()
+		self.cleanup()
 
 if __name__=='__main__':
 	parser = argparse.ArgumentParser(description='TEST_DESCRIPTION')
-	parser.add_argument('-j', '--client_info_fname', dest='client_info_fname', default=argparse.SUPPRESS, help='Filename of a JSON file containing settings.  For details, see example file "client_loc_info.json".  Values specified in the JSON file override those specified by command-line.')
-	parser.add_argument('-d', '--modpack_dir',       dest='modpack_dir',       default=argparse.SUPPRESS, help='Path to the directory from which the modpack files should be copied.  On systems running Windows Subsystem for Linux (WSL), supports both WSL paths (/mnt/c/...) and Windows paths (C:\...).')
-	parser.add_argument('-p', '--packages_dir',      dest='packages_dir',      default=argparse.SUPPRESS, help='Path to the directory in which the finished modpack packages should be created.  On systems running Windows Subsystem for Linux (WSL), supports both WSL paths (/mnt/c/...) and Windows paths (C:\...).')
-	parser.add_argument('-n', '--modpack_name',      dest='modpack_name',      default=argparse.SUPPRESS, help='Name of the modpack used as a prefix for filenames and listed in client "manifest.json".  If not specified (here or in JSON file), defaults to the name specified in "minecraftinstance.json" in the modpack directory.')
-	parser.add_argument('-v', '--modpack_version',   dest='modpack_version',   default=argparse.SUPPRESS, help='Version number of the modpack used as a suffix for filenames and listed in client "manifest.json".  If not specified (here or in JSON file), an error is encountered. #TODO: Implement auto-incrementing version numbers!') #TODO
+	parser.add_argument('-j', '--client_info_fname',        dest='client_info_fname',        default=argparse.SUPPRESS, help='Filename of a JSON file containing settings.  For details, see example file "client_loc_info.json".  Values specified in the JSON file override those specified by command-line.')
+	parser.add_argument('-r', '--remove_server_mods_fname', dest='remove_server_mods_fname', default=argparse.SUPPRESS, help='Filename of a JSON file containing a list of mods to remove for the server.  Should contain a list of filenames in the format ["ExampleMod1-1.12-1.0.1.jar", "ExampleMod2-1.12.2-3.2.01.jar"].')
+	parser.add_argument('-d', '--modpack_dir',              dest='modpack_dir',              default=argparse.SUPPRESS, help='Path to the directory from which the modpack files should be copied.  On systems running Windows Subsystem for Linux (WSL), supports both WSL paths (/mnt/c/...) and Windows paths (C:\...).')
+	parser.add_argument('-p', '--packages_dir',             dest='packages_dir',             default=argparse.SUPPRESS, help='Path to the directory in which the finished modpack packages should be created.  On systems running Windows Subsystem for Linux (WSL), supports both WSL paths (/mnt/c/...) and Windows paths (C:\...).')
+	parser.add_argument('-n', '--modpack_name',             dest='modpack_name',             default=argparse.SUPPRESS, help='Name of the modpack used as a prefix for filenames and listed in client "manifest.json".  If not specified (here or in JSON file), defaults to the name specified in "minecraftinstance.json" in the modpack directory.')
+	parser.add_argument('-v', '--modpack_version',          dest='modpack_version',          default=argparse.SUPPRESS, help='Version number of the modpack used as a suffix for filenames and listed in client "manifest.json".  If not specified (here or in JSON file), an error is encountered. #TODO: Implement auto-incrementing version numbers!') #TODO
 	args = parser.parse_args()
 	init_settings = args.__dict__
-	if init_settings=={}:
-		init_settings = {
-			'modpack_dir':None, 
-			'packages_dir':None, 
-			'modpack_name':None, 
-			'modpack_version':None, 
-			'client_info_fname':'client_loc_info.json', 
-		}
-	run(**init_settings)
+	modpack_packager(**init_settings).run()
