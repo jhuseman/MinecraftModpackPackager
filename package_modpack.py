@@ -189,9 +189,9 @@ class modpack_packager(object):
 		if os.path.isdir(self.package_client_dir):
 			print("Removing previous client package directory (Possibly from previous failed build?)...")
 			shutil.rmtree(self.package_client_dir)
-		print("Copying client package into packages directory...")
+		print('Copying client package into packages directory "{}"...'.format(self.package_client_dir))
 		file_ops.copy_directory(self.temp_client_dir, self.package_client_dir)
-		print("Compressing client package...")
+		print('Compressing client package to "{}"...'.format(self.package_client_zip_path))
 		file_ops.create_zip(self.package_client_dir, self.package_client_zip_path)
 		print("Client package complete!")
 	
@@ -249,16 +249,16 @@ class modpack_packager(object):
 		if os.path.isdir(self.package_server_dir):
 			print("Removing previous server package directory (Possibly from previous failed build?)...")
 			shutil.rmtree(self.package_server_dir)
-		print("Copying server package into packages directory...")
+		print('Copying server package into packages directory "{}"...'.format(self.package_server_dir))
 		file_ops.copy_directory(self.temp_server_dir, self.package_server_dir)
-		print("Compressing server package...")
+		print('Compressing server package to "{}"...'.format(self.package_server_zip_path))
 		file_ops.create_zip(self.package_server_dir, self.package_server_zip_path)
 		print("Server package complete!")
 	
 	def cleanup(self):
 		"""deletes the temporary files used during creation of packages"""
-		print('Deleting temporary directory "{}"...'.format(self.temp_dir))
-		shutil.rmtree(self.temp_dir)
+		print('Deleting temporary directory "{}"...'.format(self.temp_version_dir))
+		shutil.rmtree(self.temp_version_dir)
 		print('Temporary directory cleared!')
 
 def run(**kwargs):
