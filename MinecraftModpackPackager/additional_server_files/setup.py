@@ -1,36 +1,43 @@
 #!/usr/bin/env python3
 
-#TODO: translate everything into python!
+import os
 
-# # # # # # cd "$(dirname "$0")"
-# # # # # # . ./settings.sh
+import file_ops
+from settings import server_settings
 
-# # # # # # mkdir -p $(dirname libraries/${LAUNCHWRAPPER})
+def get_eula_agreed(run_dir=os.path.dirname(os.path.realpath(__file__))):
+	eula_path = os.path.join(run_dir,'eula.txt')
+	if os.path.isfile(eula_path):
+		with open(eula_path, 'r') as fp:
+			contents = fp.read()
+		if 'eula=false' in contents.lower():
+			return False
+		elif 'eula=true' in contents.lower():
+			return True
+	return False
 
-# # # # # # which wget
-# # # # # # if [ $? -eq 0 ]; then
-# # # # # # 	wget -O ${JARFILE} https://s3.amazonaws.com/Minecraft.Download/versions/${MCVER}/${JARFILE}
-# # # # # # 	wget -O libraries/${LAUNCHWRAPPER} https://libraries.minecraft.net/${LAUNCHWRAPPER}
-# # # # # # else
-# # # # # # 	which curl
-# # # # # # 	if [ $? -eq 0 ]; then
-# # # # # # 		curl -o ${JARFILE} https://s3.amazonaws.com/Minecraft.Download/versions/${MCVER}/minecraft_server.${MCVER}.jar
-# # # # # # 			curl -o libraries/${LAUNCHWRAPPER} https://libraries.minecraft.net/${LAUNCHWRAPPER}
-# # # # # # 	else
-# # # # # # 		echo "Neither wget or curl were found on your system. Please install one and try again"
-# # # # # # 	fi
-# # # # # # fi
+launchwrapper_path = os.path.join('libraries',server_settings.launchwrapper)
 
-# # # # # # # cleaner code
-# # # # # # eula_false() {
-# # # # # # 	grep -q 'eula=false' eula.txt
-# # # # # # 	return $?
-# # # # # # }
-# # # # # # # if eula.txt is missing inform user and start MC to create eula.txt
-# # # # # # if [ ! -f eula.txt ] || eula_false ; then
-# # # # # # 	echo "Type \"yes\" to indicate your agreement to Minecraft's EULA (https://account.mojang.com/documents/minecraft_eula)."
-# # # # # # 	read eula_accepted
-# # # # # # 	if [[ $eula_accepted = "yes" ]] ; then
-# # # # # # 		echo "eula=true" > eula.txt
-# # # # # # 	fi
-# # # # # # fi
+def check_files(run_dir=os.path.dirname(os.path.realpath(__file__))):
+	if not os.path.isfile(os.path.join(run_dir,server_settings.jarfile)):
+		return False
+	if not os.path.isfile(os.path.join(run_dir,launchwrapper_path)):
+		return False
+	return True
+
+def dl_files(run_dir=os.path.dirname(os.path.realpath(__file__))):
+	file_ops.download_file('https://s3.amazonaws.com/Minecraft.Download/versions/{mcver}/{jarfile}'.format(mcver=server_settings.mcver, jarfile=server_settings.jarfile), os.path.join(run_dir,server_settings.jarfile))
+	file_ops.download_file('https://libraries.minecraft.net/{}'.format(server_settings.launchwrapper), os.path.join(run_dir,launchwrapper_path))
+
+def check_eula(run_dir=os.path.dirname(os.path.realpath(__file__))):
+	# if eula.txt is missing or not true, prompt for agreement
+	while not get_eula_agreed(run_dir=run_dir):
+		if input('Type "yes" to indicate your agreement to Minecraft\'s EULA (https://account.mojang.com/documents/minecraft_eula), or press Ctrl+C to exit:\n').lower() in ['yes','true']:
+			with open(os.path.join(run_dir,'eula.txt'), 'w') as fp:
+				fp.write('eula=true')
+
+
+if __name__=="__main__":
+	if not check_files():
+		dl_files()
+	check_eula()
