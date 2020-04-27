@@ -32,8 +32,9 @@ def dl_files(run_dir=os.path.dirname(os.path.realpath(__file__))):
 def check_eula(run_dir=os.path.dirname(os.path.realpath(__file__))):
 	def prompt_eula():
 		accept_vals = ['yes','true']
-		if os.getenv('agree_eula') is not None:
-			if os.getenv('minecraft_agree_eula') in accept_vals:
+		env_var_name = 'minecraft_agree_eula'
+		if os.getenv(env_var_name) is not None:
+			if os.getenv(env_var_name) in accept_vals:
 				return True
 		return input('Type "yes" to indicate your agreement to Minecraft\'s EULA (https://account.mojang.com/documents/minecraft_eula), or press Ctrl+C to exit:\n').lower() in accept_vals
 	# if eula.txt is missing or not true, prompt for agreement

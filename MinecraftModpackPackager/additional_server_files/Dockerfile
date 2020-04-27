@@ -1,4 +1,5 @@
-FROM python:3
+FROM openjdk:8u252-jre-slim-buster
+COPY --from=python:3.8-slim-buster / /
 
 WORKDIR /app
 EXPOSE 80

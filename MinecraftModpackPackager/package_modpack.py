@@ -299,7 +299,7 @@ class modpack_packager(object):
 			print("Docker installation not found! Skipping docker packaging!")
 			return
 		if self.docker_image_name is None:
-			self.docker_image_name = self.modpack_name
+			self.docker_image_name = self.modpack_name.lower()
 		docker_tags = [
 			'{name}:{version}'.format(name=self.docker_image_name, version=self.modpack_version),
 			'{name}:{version}'.format(name=self.docker_image_name, version='latest'),

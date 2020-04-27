@@ -3,7 +3,8 @@
 import os
 import shutil
 
-import requests
+# import requests
+import guavacado
 
 def copy_file(src, dest):
 	"""copies the contents of a file into another file"""
@@ -84,7 +85,13 @@ def download_file(url, filename):
 	if not os.path.isdir(par_dir):
 		if par_dir!='':
 			os.makedirs(par_dir)
-	r = requests.get(url, stream=True)
-	with open(filename, 'wb') as fd:
-		for chunk in r.iter_content(chunk_size=128):
-			fd.write(chunk)
+	# r = requests.get(url, stream=True)
+	# with open(filename, 'wb') as fd:
+	# 	for chunk in r.iter_content(chunk_size=128):
+	# 		fd.write(chunk)
+	d, s = guavacado.Client().request_url(url)
+	if s==200:
+		with open(filename, 'wb') as fd:
+			fd.write(d)
+	else:
+		raise Exception("Could not download file!")
