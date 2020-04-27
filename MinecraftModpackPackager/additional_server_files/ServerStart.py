@@ -23,7 +23,7 @@ def fp_to_line_queue(fp, thread_name=None):
 	return out_queue, read_thread
 
 class server_starter(object):
-	def __init__(self, server_settings=settings.server_settings, run_dir=os.path.dirname(os.path.realpath(__file__))):
+	def __init__(self, server_settings=settings.server_settings, run_dir=os.path.dirname(os.path.realpath(__file__)), log_handler=None):
 		self.server_settings = server_settings
 		self.run_dir = run_dir
 		self.in_queue = None
@@ -31,7 +31,9 @@ class server_starter(object):
 		self.stop_event = threading.Event()
 		self.running_server_event = threading.Event()
 		self.processing_input_event = threading.Event()
-		self.log_handler = LogHandler.log_handler()
+		self.log_handler = log_handler
+		if self.log_handler is None:
+			self.log_handler = LogHandler.log_handler()
 	
 	def run_server(self):
 		# set state event to indicate server is running
@@ -144,8 +146,8 @@ class server_starter(object):
 				#send stop command to the server
 				self.in_queue.put('stop\n')
 
-def main():
-	server_starter(server_settings=settings.server_settings).run()
+def main(log_handler=None):
+	server_starter(server_settings=settings.server_settings, log_handler=log_handler).run()
 
 if __name__=="__main__":
 	main()
