@@ -144,5 +144,8 @@ class server_starter(object):
 				#send stop command to the server
 				self.in_queue.put('stop\n')
 
-if __name__=="__main__":
+def main():
 	server_starter(server_settings=settings.server_settings).run()
+
+if __name__=="__main__":
+	main()

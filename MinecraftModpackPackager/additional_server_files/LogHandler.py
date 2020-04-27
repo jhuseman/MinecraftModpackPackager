@@ -138,7 +138,8 @@ class log_handler(object):
 				elif part_no==1:
 					part_split = part.split('/')
 					if len(parts)>=2:
-						thread, log_type = part_split
+						log_type = part_split[-1]
+						thread = '/'.join(part_split[:-1])
 					else:
 						thread = ''
 						log_type = part

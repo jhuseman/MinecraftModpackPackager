@@ -1,1 +1,1 @@
--e git+git://github.com/jhuseman/Guavacado.git#egg=guavacado
+guavacado>=1.9.10

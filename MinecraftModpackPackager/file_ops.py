@@ -84,7 +84,14 @@ def download_file(url, filename):
 	if not os.path.isdir(par_dir):
 		if par_dir!='':
 			os.makedirs(par_dir)
-	r = requests.get(url, stream=True)
+	try:
+		r = requests.get(url, stream=True)
+	except requests.exceptions.SSLError:
+		warn_msg = "WARNING! Downloading the file {} resulted in a SSL error! Falling back to not verifying certificates!".format(url)
+		print(warn_msg)
+		print(warn_msg)
+		print(warn_msg+" [message repeated for visibility]")
+		r = requests.get(url, stream=True, verify=False)
 	with open(filename, 'wb') as fd:
 		for chunk in r.iter_content(chunk_size=128):
 			fd.write(chunk)

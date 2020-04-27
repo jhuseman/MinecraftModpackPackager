@@ -18,6 +18,7 @@ class modpack_packager(object):
 			packages_dir=None, 
 			additional_server_files_dir=os.path.join(os.path.dirname(__file__),'additional_server_files'), 
 			modpack_name=None, 
+			docker_image_name=None,
 			modpack_version=None, 
 			remove_server_mods_fname=os.path.join(os.path.dirname(__file__),'remove_server_mods.json'), 
 			client_info_fname=os.path.join(os.path.dirname(__file__),'client_loc_info.json'), 
@@ -27,6 +28,7 @@ class modpack_packager(object):
 		self.packages_dir = packages_dir
 		self.additional_server_files_dir = additional_server_files_dir
 		self.modpack_name = modpack_name
+		self.docker_image_name = docker_image_name
 		self.modpack_version = modpack_version
 		self.remove_server_mods_fname = remove_server_mods_fname
 		self.client_info_fname = client_info_fname
@@ -61,9 +63,12 @@ class modpack_packager(object):
 			with open(self.client_info_fname, 'r') as fp:
 				client_info = json.load(fp)
 			overwrite_keys = [
+				'additional_server_files_dir', 
+				'remove_server_mods_fname', 
 				'modpack_dir', 
 				'packages_dir', 
 				'modpack_name', 
+				'docker_image_name', 
 				'modpack_version', 
 			]
 			for key in overwrite_keys:
@@ -109,8 +114,8 @@ class modpack_packager(object):
 		self.package_server_zip_path = os.path.join(self.package_dir, self.package_server_zip_fname)
 
 		self.temp_client_overrides_dir_path = os.path.join(self.temp_client_dir,'overrides')
-		self.temp_client_config_dir_path = os.path.join(self.temp_client_overrides_dir_path,'client')
-		self.temp_client_manifest_json_path = os.path.join(self.temp_client_dir,'mainfest.json')
+		self.temp_client_config_dir_path = os.path.join(self.temp_client_overrides_dir_path,'config')
+		self.temp_client_manifest_json_path = os.path.join(self.temp_client_dir,'manifest.json')
 		self.temp_client_modlist_html_path = os.path.join(self.temp_client_dir,'modlist.html')
 
 		self.forge_version = self.minecraftinstance["baseModLoader"]["filename"].replace('.jar','').replace('forge-','')
@@ -135,7 +140,7 @@ class modpack_packager(object):
 	def install_forge(self):
 		"""ensures the forge server version specified in minecraftinstance is installed where we can access it"""
 		if not os.path.isfile(self.forge_installer_path):
-			print("Downloading installer for forge {}...".format(self.forge_version))
+			print("Downloading installer for forge {ver} (URL: {url})...".format(ver=self.forge_version,url=self.forge_installer_url))
 			file_ops.download_file(self.forge_installer_url, self.forge_installer_path)
 		if not os.path.isdir(self.forge_install_dir_path):
 			os.makedirs(self.forge_install_dir_path)
@@ -220,6 +225,7 @@ class modpack_packager(object):
 			exclude=[
 				".curseclient",
 				"minecraftinstance.json",
+				"saves",
 				os.path.join("mods","mod_list.json"),
 			]
 		)
@@ -274,6 +280,47 @@ class modpack_packager(object):
 		file_ops.create_zip(self.package_server_dir, self.package_server_zip_path)
 		print("Server package complete!")
 	
+	def package_docker_server(self):
+		"""
+		convert the server package directory into a docker image and push the image to a container registry
+			skips upload if container registry not specified as part of docker_image_name
+			requires docker (https://www.docker.com/) to be installed and Dockerfile included in root of additional_server_files_dir, else skips this step
+			runs Dockerfile with build context directory in the root of the server package directory
+		"""
+		dockerfile_filename = os.path.join(self.package_server_dir, 'Dockerfile')
+		print("Checking if Dockerfile exists...")
+		if not os.path.isfile(dockerfile_filename):
+			print("No Dockerfile found! Skipping docker packaging!")
+			return
+		print("Checking if docker is installed...")
+		try:
+			subprocess.check_call(['docker', '--version'])
+		except subprocess.CalledProcessError:
+			print("Docker installation not found! Skipping docker packaging!")
+			return
+		if self.docker_image_name is None:
+			self.docker_image_name = self.modpack_name
+		docker_tags = [
+			'{name}:{version}'.format(name=self.docker_image_name, version=self.modpack_version),
+			'{name}:{version}'.format(name=self.docker_image_name, version='latest'),
+		]
+		if len(docker_tags)<=0:
+			print("No docker tag names listed! Skipping docker packaging!")
+			return
+		print('Building docker container "{name_ver}"...'.format(name_ver=docker_tags[0]))
+		subprocess.check_call(['docker', 'build', '--rm', '-f', dockerfile_filename, '-t', docker_tags[0], self.package_server_dir], cwd=self.package_server_dir)
+		print("Docker container built!")
+		for tagname in docker_tags[1:]:
+			print('Tagging build as "{tagname}"...'.format(tagname=tagname))
+			subprocess.check_call(['docker', 'tag', docker_tags[0], tagname])
+			print("Inage tagged!")
+		for tagname in docker_tags:
+			if '/' in tagname:
+				print('Uploading docker image "{tagname}"...'.format(tagname=tagname))
+				subprocess.check_call(['docker', 'push', tagname])
+				print("Image uploaded!")
+		print("Docker container packaging complete!")
+	
 	def cleanup(self):
 		"""deletes the temporary files used during creation of packages"""
 		print('Deleting temporary directory "{}"...'.format(self.temp_version_dir))
@@ -281,10 +328,11 @@ class modpack_packager(object):
 		print('Temporary directory cleared!')
 	
 	def run(self):
-		"""runs the entire packaging procedure in order, including prep, package_client, package_server, and cleanup"""
+		"""runs the entire packaging procedure in order, including prep, package_client, package_server, package_docker_server, and cleanup"""
 		self.prep()
 		self.package_client()
 		self.package_server()
+		self.package_docker_server()
 		self.cleanup()
 
 if __name__=='__main__':

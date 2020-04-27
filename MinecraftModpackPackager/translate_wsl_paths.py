@@ -51,9 +51,9 @@ def is_running_wsl():
 	if is_running_win():
 		return False
 	if os.name in ['posix']:
-		if 'Microsoft' in os.uname().release:
+		if 'microsoft' in os.uname().release.lower():
 			return True
-		if 'Microsoft' in os.uname().version:
+		if 'microsoft' in os.uname().version.lower():
 			return True
 	return False
 
