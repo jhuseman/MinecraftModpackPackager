@@ -12,17 +12,25 @@ class docker_starter(object):
 	
 	def prep_fs(self):
 		def link_file(src, dest):
+			print('"{src}" -> "{dest}"'.format(src=src,dest=dest))
 			if os.path.exists(dest):
-				os.remove(dest)
+				new_fname = dest
+				while new_fname[-1]=='/' or new_fname[-1]=='\\':
+					new_fname = new_fname[:-1]
+				while os.path.exists(new_fname):
+					new_fname = new_fname + '_REM_BAK'
+				os.rename(dest, new_fname)
 			os.symlink(os.path.abspath(src), os.path.abspath(dest))
 		
 		link_contents = [('/mc','.')]
 		for src,dest in link_contents:
 			if os.path.exists(src):
 				if os.path.isdir(src):
+					print('Linking files in "{src}" to "{dest}"...'.format(src=src,dest=dest))
 					for fn in os.listdir(src):
 						link_file(os.path.join(src,fn), os.path.join(dest,fn))
 				else:
+					print('Linking file "{src}" to "{dest}"...'.format(src=src,dest=dest))
 					link_file(src, dest)
 	
 	def post_run(self):
@@ -31,6 +39,7 @@ class docker_starter(object):
 		backup_target = os.getenv(backup_target_envvar)
 		backup_files_env = os.getenv(backup_files_envvar)
 		if backup_target is not None:
+			print('Backing up files to "{backup_target}"...'.format(backup_target=backup_target))
 			if backup_files_env is None:
 				backup_files = [
 					'eula.txt',
@@ -59,8 +68,10 @@ class docker_starter(object):
 					dest=os.path.join(backup_target,fname)
 				if os.path.exists(src):
 					if os.path.isdir(src):
+						print('Backing up files in "{src}" to "{dest}"...'.format(src=src,dest=dest))
 						file_ops.copy_directory(src, dest)
 					else:
+						print('Backing up file "{src}" to "{dest}"...'.format(src=src,dest=dest))
 						file_ops.copy_file(src, dest)
 	
 	def run_game(self):
