@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import shutil
 
 import ServerStart
 import LogHandler
@@ -14,12 +15,10 @@ class docker_starter(object):
 		def link_file(src, dest):
 			print('"{src}" -> "{dest}"'.format(src=src,dest=dest))
 			if os.path.exists(dest):
-				new_fname = dest
-				while new_fname[-1]=='/' or new_fname[-1]=='\\':
-					new_fname = new_fname[:-1]
-				while os.path.exists(new_fname):
-					new_fname = new_fname + '_REM_BAK'
-				os.rename(dest, new_fname)
+				if os.path.isdir(dest):
+					shutil.rmtree(dest)
+				else:
+					os.remove(dest)
 			os.symlink(os.path.abspath(src), os.path.abspath(dest))
 		
 		link_contents = [('/mc','.')]
