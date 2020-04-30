@@ -1,1 +1,1 @@
-modpack_packager_version = '1.0.7'
+modpack_packager_version = '1.0.8'

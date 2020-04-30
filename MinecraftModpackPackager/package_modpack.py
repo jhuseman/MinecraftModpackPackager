@@ -120,7 +120,10 @@ class modpack_packager(object):
 
 		self.forge_version = self.minecraftinstance["baseModLoader"]["filename"].replace('.jar','').replace('forge-','')
 		self.forge_installer_filename = 'forge-{}-installer.jar'.format(self.forge_version)
-		self.forge_universal_filename = 'forge-{}-universal.jar'.format(self.forge_version)
+		if self.forge_version.startswith('1.12.2') and int(self.forge_version[-4:])<=2838:
+			self.forge_universal_filename = 'forge-{}-universal.jar'.format(self.forge_version)
+		else:
+			self.forge_universal_filename = 'forge-{}.jar'.format(self.forge_version)
 		self.forge_installer_path = os.path.join(os.curdir, 'forge_jars', self.forge_installer_filename)
 		# self.forge_install_dir_path = os.path.join(os.curdir, 'forge_jars', 'installs', self.forge_version)
 		self.forge_install_dir_path = os.path.join(os.path.expanduser('~'), '.mc_forge_installs', 'forge-{}'.format(self.forge_version))
